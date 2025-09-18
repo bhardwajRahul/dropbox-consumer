@@ -1,5 +1,9 @@
 # 🗂️ Dropbox Consumer
 
+<div align="center">
+  <img src="appicon.png" alt="Dropbox Consumer" width="128" height="128">
+</div>
+
 > **A robust file monitoring service for seamless document processing and file synchronization**
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)

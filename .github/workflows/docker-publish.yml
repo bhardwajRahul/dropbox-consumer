@@ -59,13 +59,23 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Debug README content
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      run: |
+        echo "=== README.md content ===" 
+        head -20 ./README.md
+        echo "=== End README preview ==="
+        echo "Repository: ${{ env.IMAGE_NAME }}"
+        echo "Username: ${{ secrets.DOCKER_USERNAME }}"
+
     - name: Update Docker Hub description
       if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
       continue-on-error: true  # Don't fail the entire workflow if this step fails
-      uses: peter-evans/dockerhub-description@v3
+      uses: peter-evans/dockerhub-description@v4  # Updated to v4 for better reliability
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
         repository: ${{ env.IMAGE_NAME }}
         readme-filepath: ./README.md
         short-description: "A robust file monitoring service for seamless document processing and file synchronization"
+        enable-url-completion: true
