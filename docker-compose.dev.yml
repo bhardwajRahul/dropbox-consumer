@@ -2,7 +2,7 @@ version: "3.8"
 services:
   dropbox_consumer:
     build: .
-    image: dropbox-consumer:dev
+    image: trusmith/dropbox-consumer:dev
     container_name: dropbox_consumer_dev
     user: "${PUID:-1000}:${PGID:-1000}"
     volumes:

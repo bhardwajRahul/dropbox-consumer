@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   dropbox_consumer:
-    image: johnlazarus/dropbox-consumer:latest
+    image: trusmith/dropbox-consumer:latest
     container_name: dropbox_consumer
     user: "${PUID:-1000}:${PGID:-1000}"   # replace with your numeric UID:GID or set env
     volumes:

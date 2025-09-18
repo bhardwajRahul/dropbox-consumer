@@ -85,8 +85,7 @@ That's it! Drop files into your source directory and watch them safely appear in
 version: "3.8"
 services:
   dropbox_consumer:
-    build: .
-    image: yourdockerhubuser/dropbox-consumer:1.0
+    image: trusmith/dropbox-consumer:latest
     container_name: dropbox_consumer
     user: "${PUID:-1000}:${PGID:-1000}"
     volumes:
