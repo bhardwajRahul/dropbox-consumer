@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.description="A robust file monitoring service for
 LABEL org.opencontainers.image.url="https://github.com/john-lazarus/dropbox-consumer"
 LABEL org.opencontainers.image.source="https://github.com/john-lazarus/dropbox-consumer"
 LABEL org.opencontainers.image.vendor="john-lazarus"
-LABEL org.opencontainers.image.licenses="CC-BY-NC-4.0"
+LABEL org.opencontainers.image.licenses="https://github.com/john-lazarus/dropbox-consumer/blob/main/LICENSE"
 LABEL org.opencontainers.image.documentation="https://github.com/john-lazarus/dropbox-consumer#readme"
 
 # Avoid generation of .pyc files and buffer stdout so logs show up immediately
