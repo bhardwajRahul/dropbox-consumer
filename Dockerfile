@@ -1,6 +1,16 @@
 # Use a small, stable Debian-based python image (good balance of minimal and compatibility)
 FROM python:3.12-slim
 
+# Metadata labels for Docker Hub
+LABEL maintainer="john-lazarus"
+LABEL org.opencontainers.image.title="Dropbox Consumer"
+LABEL org.opencontainers.image.description="A robust file monitoring service for seamless document processing and file synchronization"
+LABEL org.opencontainers.image.url="https://github.com/john-lazarus/dropbox-consumer"
+LABEL org.opencontainers.image.source="https://github.com/john-lazarus/dropbox-consumer"
+LABEL org.opencontainers.image.vendor="john-lazarus"
+LABEL org.opencontainers.image.licenses="CC-BY-NC-4.0"
+LABEL org.opencontainers.image.documentation="https://github.com/john-lazarus/dropbox-consumer#readme"
+
 # Avoid generation of .pyc files and buffer stdout so logs show up immediately
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -14,7 +24,21 @@ RUN pip install --no-cache-dir watchdog
 # Copy app
 COPY watch_and_copy.py /app/watch_and_copy.py
 
-# Use a non-root user by default? We'll keep root but recommend running container with --user to match host UID/GID.
-# Expose nothing (this is a worker)
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Expose configuration via environment variables
+ENV SOURCE=/source \
+    DEST=/consume \
+    PRESERVE_DIRS=false \
+    RECURSIVE=true \
+    COPY_EMPTY_DIRS=false
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import os; exit(0 if os.path.exists('/app/watch_and_copy.py') else 1)"
+
 CMD ["python", "watch_and_copy.py"]
 

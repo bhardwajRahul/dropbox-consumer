@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  dropbox_consumer:
+    build: .
+    image: dropbox-consumer:dev
+    container_name: dropbox_consumer_dev
+    user: "${PUID:-1000}:${PGID:-1000}"
+    volumes:
+      - /opt/testin:/source:ro
+      - /opt/testout:/consume:rw
+      # Mount source code for development
+      - ./watch_and_copy.py:/app/watch_and_copy.py:ro
+    environment:
+      - SOURCE=/source
+      - DEST=/consume
+      - PRESERVE_DIRS=true
+      - RECURSIVE=true
+      - COPY_EMPTY_DIRS=false
+      # Development settings
+      - DEBOUNCE_SECONDS=0.5
+    restart: unless-stopped
