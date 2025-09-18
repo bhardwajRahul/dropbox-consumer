@@ -4,7 +4,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey?style=flat-square)](https://creativecommons.org/licenses/by-nc/4.0/)
 
 ## 📋 Overview
 
@@ -282,7 +282,13 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License - see the [LICENSE](LICENSE) file for details.
+
+**In Summary:**
+- ✅ **Personal Use**: Free to use, modify, and share
+- ✅ **Attribution Required**: Must credit the original author
+- ❌ **Commercial Use**: Not permitted without explicit permission
+- 📧 **Commercial Inquiries**: Contact for licensing options
 
 ---
 
