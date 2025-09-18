@@ -24,9 +24,9 @@ RUN pip install --no-cache-dir watchdog
 # Copy app
 COPY watch_and_copy.py /app/watch_and_copy.py
 
-# Create non-root user for security
+# Create non-root user and directories for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN chown -R appuser:appuser /app
+RUN mkdir -p /app/state && chown -R appuser:appuser /app
 USER appuser
 
 # Expose configuration via environment variables

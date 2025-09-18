@@ -77,6 +77,8 @@ That's it! Drop files into your source directory and watch them safely appear in
 | `RECURSIVE` | `true` | Monitor subdirectories recursively |
 | `PRESERVE_DIRS` | `false` | Maintain directory structure in destination |
 | `COPY_EMPTY_DIRS` | `false` | ⚠️ Copy empty directories (see warning below) |
+| `STATE_DIR` | `/app/state` | 🆕 Directory for persistent state storage |
+| `STATE_CLEANUP_DAYS` | `30` | 🆕 Days to keep old state entries (0=disable) |
 | `DEBOUNCE_SECONDS` | `1.0` | Event debouncing delay |
 | `STABILITY_INTERVAL` | `0.5` | File stability check interval |
 | `STABILITY_STABLE_ROUNDS` | `2` | Consecutive stable checks required |
@@ -95,6 +97,8 @@ services:
     volumes:
       - /opt/documents/dropbox:/source:ro
       - /opt/paperless/consume:/consume:rw
+      # 🆕 Persistent state to prevent re-processing after restarts
+      - /opt/dropbox-consumer/state:/app/state:rw
     environment:
       - SOURCE=/source
       - DEST=/consume
@@ -102,6 +106,9 @@ services:
       - RECURSIVE=true
       # WARNING: COPY_EMPTY_DIRS may create unnecessary directory structure
       - COPY_EMPTY_DIRS=false
+      # 🆕 Persistent state configuration
+      - STATE_DIR=/app/state
+      - STATE_CLEANUP_DAYS=30
       - DEBOUNCE_SECONDS=2.0
       - MAX_WORKERS=2
     restart: unless-stopped
@@ -147,7 +154,16 @@ The service waits for files to become stable before copying:
 - Computes SHA-256 hash of each file
 - Skips copying if content hasn't changed since last copy
 - Prevents unnecessary re-processing of identical files
-- Maintains hash cache for efficient comparison
+- **🆕 Persistent hash cache** - remembers processed files across container restarts
+- **🆕 Automatic cleanup** - removes old entries to prevent unbounded growth
+
+### Persistent State Management
+
+- **📂 State persistence** - maintains processing history across restarts
+- **🔄 Resume capability** - no duplicate processing after container restart
+- **🧹 Automatic cleanup** - configurable retention of old state entries
+- **💾 JSON storage** - human-readable state files for debugging
+- **🚀 Performance** - faster startup by skipping already-processed files
 
 ---
 
@@ -228,6 +244,28 @@ environment:
 # Increase debounce time for high-frequency changes
 environment:
   - DEBOUNCE_SECONDS=5.0
+```
+
+#### 5. State Persistence Issues
+```bash
+# Check state directory permissions
+docker-compose exec dropbox_consumer ls -la /app/state
+
+# Verify state files are being created
+docker-compose exec dropbox_consumer ls -la /app/state/
+
+# Reset state (removes processing history)
+sudo rm -rf /opt/dropbox-consumer/state/*
+docker-compose restart dropbox_consumer
+```
+
+#### 6. Files Being Re-processed After Restart
+```bash
+# Ensure state volume is properly mounted
+docker-compose exec dropbox_consumer ls -la /app/state/
+
+# Check state directory has correct permissions
+sudo chown -R $(id -u):$(id -g) /opt/dropbox-consumer/state/
 ```
 
 ### Debug Mode

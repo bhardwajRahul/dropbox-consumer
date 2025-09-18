@@ -8,6 +8,8 @@ services:
     volumes:
       - /opt/testin:/source:ro
       - /opt/testout:/consume:rw
+      # Persistent state storage
+      - /opt/dropbox-consumer/state:/app/state:rw
       # Mount source code for development
       - ./watch_and_copy.py:/app/watch_and_copy.py:ro
     environment:
@@ -16,6 +18,9 @@ services:
       - PRESERVE_DIRS=true
       - RECURSIVE=true
       - COPY_EMPTY_DIRS=false
+      # Persistent state configuration
+      - STATE_DIR=/app/state
+      - STATE_CLEANUP_DAYS=7
       # Development settings
       - DEBOUNCE_SECONDS=0.5
     restart: unless-stopped

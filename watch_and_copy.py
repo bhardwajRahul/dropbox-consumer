@@ -22,6 +22,7 @@ import hashlib
 import logging
 import threading
 import shutil
+import json
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from watchdog.observers import Observer
@@ -30,6 +31,7 @@ from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileModifi
 # --- Configuration (change with env vars) ---
 SOURCE = Path(os.environ.get("SOURCE", "/source")).resolve()
 DEST = Path(os.environ.get("DEST", "/consume")).resolve()
+STATE_DIR = Path(os.environ.get("STATE_DIR", "/app/state")).resolve()  # Persistent state storage
 RECURSIVE = os.environ.get("RECURSIVE", "true").lower() in ("1", "true", "yes")
 DEBOUNCE_SECONDS = float(os.environ.get("DEBOUNCE_SECONDS", "1.0"))      # debounce events for same path
 STABILITY_CHECK_INTERVAL = float(os.environ.get("STABILITY_INTERVAL", "0.5"))
@@ -38,6 +40,7 @@ COPY_TIMEOUT = int(os.environ.get("COPY_TIMEOUT", "60"))                 # max t
 MAX_WORKERS = int(os.environ.get("MAX_WORKERS", "4"))
 PRESERVE_DIRS = os.environ.get("PRESERVE_DIRS", "false").lower() in ("1", "true", "yes")
 COPY_EMPTY_DIRS = os.environ.get("COPY_EMPTY_DIRS", "false").lower() in ("1", "true", "yes")  # copy empty directories
+STATE_CLEANUP_DAYS = int(os.environ.get("STATE_CLEANUP_DAYS", "30"))     # cleanup old state entries after N days
 
 # --- Logging (console only) ---
 logging.basicConfig(
@@ -54,6 +57,113 @@ debounce_timers = {}    # path -> threading.Timer
 lock = threading.Lock()
 last_copied_hash = {}   # path -> sha256 hex
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+# --- State file paths ---
+SNAPSHOT_FILE = STATE_DIR / "initial_snapshot.json"
+HASH_CACHE_FILE = STATE_DIR / "hash_cache.json"
+
+
+def ensure_state_dir():
+    """Ensure state directory exists with proper permissions."""
+    try:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        log.info("State directory initialized: %s", STATE_DIR)
+    except Exception as e:
+        log.warning("Could not create state directory %s: %s", STATE_DIR, e)
+        log.warning("Running without persistent state - data will be lost on restart")
+
+
+def save_state():
+    """Save current state to disk."""
+    if not STATE_DIR.exists():
+        return
+    
+    try:
+        # Save initial snapshot
+        snapshot_data = {
+            'timestamp': startup_time,
+            'data': initial_snapshot
+        }
+        with SNAPSHOT_FILE.open('w') as f:
+            json.dump(snapshot_data, f, indent=2)
+        
+        # Save hash cache with timestamp for cleanup
+        hash_data = {
+            'timestamp': time.time(),
+            'data': last_copied_hash
+        }
+        with HASH_CACHE_FILE.open('w') as f:
+            json.dump(hash_data, f, indent=2)
+            
+        log.debug("State saved successfully")
+    except Exception as e:
+        log.warning("Failed to save state: %s", e)
+
+
+def load_state():
+    """Load previous state from disk."""
+    global initial_snapshot, last_copied_hash
+    
+    if not STATE_DIR.exists():
+        log.info("No state directory found, starting fresh")
+        return
+    
+    try:
+        # Load initial snapshot
+        if SNAPSHOT_FILE.exists():
+            with SNAPSHOT_FILE.open('r') as f:
+                snapshot_data = json.load(f)
+            initial_snapshot = snapshot_data.get('data', {})
+            log.info("Loaded previous snapshot: %d files", len(initial_snapshot))
+        
+        # Load hash cache
+        if HASH_CACHE_FILE.exists():
+            with HASH_CACHE_FILE.open('r') as f:
+                hash_data = json.load(f)
+            last_copied_hash = hash_data.get('data', {})
+            log.info("Loaded hash cache: %d files", len(last_copied_hash))
+            
+        # Cleanup old entries
+        cleanup_old_state()
+            
+    except Exception as e:
+        log.warning("Failed to load previous state: %s", e)
+        log.info("Starting with fresh state")
+        initial_snapshot = {}
+        last_copied_hash = {}
+
+
+def cleanup_old_state():
+    """Remove old entries from state to prevent unbounded growth."""
+    if STATE_CLEANUP_DAYS <= 0:
+        return
+    
+    cleanup_threshold = time.time() - (STATE_CLEANUP_DAYS * 24 * 3600)
+    cleaned_hashes = 0
+    
+    # Clean up hash cache entries
+    old_hash_cache = last_copied_hash.copy()
+    for file_path, hash_value in old_hash_cache.items():
+        try:
+            # Check if file still exists
+            if not Path(file_path).exists():
+                del last_copied_hash[file_path]
+                cleaned_hashes += 1
+        except Exception:
+            # Remove entries that can't be checked
+            del last_copied_hash[file_path]
+            cleaned_hashes += 1
+    
+    if cleaned_hashes > 0:
+        log.info("Cleaned up %d old hash cache entries", cleaned_hashes)
+        save_state()
+
+
+def save_state_periodically():
+    """Save state every 5 minutes to prevent data loss."""
+    while True:
+        time.sleep(300)  # 5 minutes
+        save_state()
 
 
 def compute_sha256(path: Path, chunk_size: int = 4 * 1024 * 1024) -> str:
@@ -256,6 +366,8 @@ def process_file(path: str, reason: str):
                  path, path.stat().st_size, sha or "?", dest, elapsed)
         if sha:
             last_copied_hash[str(path)] = sha
+            # Save state immediately after successful copy
+            save_state()
     except Exception as e:
         log.exception("Copy failed for %s -> %s: %s", path, dest, e)
 
@@ -333,8 +445,16 @@ def main():
     log.info("Starting file watcher.")
     log.debug("Environment variable COPY_EMPTY_DIRS raw value: '%s'", os.environ.get("COPY_EMPTY_DIRS", "NOT_SET"))
     log.debug("Parsed COPY_EMPTY_DIRS boolean value: %s", COPY_EMPTY_DIRS)
-    log.info("SOURCE=%s  DEST=%s  PRESERVE_DIRS=%s  RECURSIVE=%s  COPY_EMPTY_DIRS=%s", 
-             SOURCE, DEST, PRESERVE_DIRS, RECURSIVE, COPY_EMPTY_DIRS)
+    log.info("SOURCE=%s  DEST=%s  PRESERVE_DIRS=%s  RECURSIVE=%s  COPY_EMPTY_DIRS=%s  STATE_DIR=%s", 
+             SOURCE, DEST, PRESERVE_DIRS, RECURSIVE, COPY_EMPTY_DIRS, STATE_DIR)
+
+    # Initialize persistent state
+    ensure_state_dir()
+    load_state()
+
+    # Start periodic state saving in background
+    state_saver = threading.Thread(target=save_state_periodically, daemon=True)
+    state_saver.start()
 
     snapshot_existing_files()
 
@@ -355,6 +475,8 @@ def main():
     finally:
         observer.stop()
         observer.join()
+        # Save final state before shutdown
+        save_state()
         executor.shutdown(wait=True)
         log.info("Watcher stopped cleanly.")
 

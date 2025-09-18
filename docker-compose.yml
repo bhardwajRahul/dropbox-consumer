@@ -7,6 +7,8 @@ services:
     volumes:
       - /opt/testin:/source:ro
       - /opt/testout:/consume:rw
+      # Persistent state storage to prevent re-processing after restarts
+      - /opt/dropbox-consumer/state:/app/state:rw
     environment:
       - SOURCE=/source
       - DEST=/consume
@@ -15,6 +17,9 @@ services:
       # WARNING: COPY_EMPTY_DIRS copies empty directories which may waste resources 
       # and create unnecessary directory structure in your document management system.
       # Only enable if you specifically need empty folder structure preservation.
-      - COPY_EMPTY_DIRS=true
+      - COPY_EMPTY_DIRS=false
+      # Persistent state configuration
+      - STATE_DIR=/app/state
+      - STATE_CLEANUP_DAYS=30
     restart: unless-stopped
 
