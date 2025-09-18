@@ -57,13 +57,13 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    # Temporarily disabled due to permission issues
-    # - name: Update Docker Hub description
-    #   if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    #   continue-on-error: true
-    #   uses: peter-evans/dockerhub-description@v3
-    #   with:
-    #     username: ${{ secrets.DOCKER_USERNAME }}
-    #     password: ${{ secrets.DOCKER_TOKEN }}
-    #     repository: ${{ env.IMAGE_NAME }}
-    #     readme-filepath: ./README.md
+    - name: Update Docker Hub description
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      continue-on-error: true  # Don't fail the entire workflow if this step fails
+      uses: peter-evans/dockerhub-description@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+        repository: ${{ env.IMAGE_NAME }}
+        readme-filepath: ./README.md
+        short-description: "A robust file monitoring service for seamless document processing and file synchronization"
