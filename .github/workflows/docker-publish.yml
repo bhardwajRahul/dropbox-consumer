@@ -11,7 +11,9 @@ on:
 
 env:
   REGISTRY: docker.io
+  GHCR_REGISTRY: ghcr.io
   IMAGE_NAME: trusmith/dropbox-consumer
+  GHCR_IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
   build:
@@ -19,6 +21,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     steps:
     - name: Checkout repository
@@ -35,11 +38,21 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
+    - name: Log in to GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.GHCR_REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Extract metadata (tags, labels) for Docker
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          ${{ env.GHCR_IMAGE_NAME }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
@@ -62,9 +75,9 @@ jobs:
       if: steps.meta.outputs.tags == ''
       run: |
         if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+          echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest,${{ env.GHCR_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
         else
-          echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.GHCR_IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_OUTPUT
         fi
 
     - name: Build and push Docker image
@@ -84,7 +97,8 @@ jobs:
         echo "=== README.md content ===" 
         head -20 ./README.md
         echo "=== End README preview ==="
-        echo "Repository: ${{ env.IMAGE_NAME }}"
+        echo "Docker Hub Repository: ${{ env.IMAGE_NAME }}"
+        echo "GitHub Package: ${{ env.GHCR_IMAGE_NAME }}"
         echo "Username: ${{ secrets.DOCKER_USERNAME }}"
 
     - name: Update Docker Hub description
