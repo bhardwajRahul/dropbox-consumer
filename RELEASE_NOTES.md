@@ -1,5 +1,96 @@
 # Release Notes
 
+## [2.0.0] - 2025-09-19
+
+### 🚀 **Major Release - Persistent State Storage**
+
+**Key Innovation**: State persistence ensures files are never re-processed after container restarts, making the service truly production-ready for long-term deployments.
+
+### ✨ **New Features**
+
+#### **🔄 Persistent State Storage**
+- 💾 **State persistence** - Maintains file tracking across container restarts
+- 📊 **Dual storage system**:
+  - `initial_snapshot.json` - Tracks files present at startup
+  - `hash_cache.json` - Stores SHA-256 hashes of processed files
+- 🗂️ **Configurable state directory** - Defaults to `./state` in current directory
+- 🧹 **Automatic cleanup** - Removes old state entries after configurable days
+- 🔍 **State loading on startup** - Restores previous session state
+
+#### **⚙️ Enhanced Configuration**
+- 🆕 `STATE_DIR` environment variable - Configure state storage location
+- 🆕 `STATE_CLEANUP_DAYS` environment variable - Control state retention
+- 🛡️ **Permission handling** - Improved PUID/PGID documentation and support
+- 📁 **Auto-creation** - State directory created automatically if missing
+
+### 🔧 **Improvements**
+
+#### **📋 Documentation Enhancements**
+- 📖 **PUID/PGID guidance** - Detailed user permission configuration
+- 🛠️ **Enhanced troubleshooting** - State persistence troubleshooting section
+- 💡 **Permission best practices** - Security and ownership recommendations
+- 🔍 **Command examples** - How to check user IDs and diagnose issues
+
+#### **🐛 Bug Fixes & Stability**
+- ✅ **Immediate state save** - State now saved immediately after initial snapshot
+- 🔧 **Improved logging** - Better state operation visibility
+- 🛡️ **Permission validation** - Container checks state directory writability
+- 📊 **Startup feedback** - Clear indication of loaded state on restart
+
+### 📊 **State Persistence Details**
+
+```json
+// initial_snapshot.json - Tracks existing files
+{
+  "timestamp": 1758300680.0525515,
+  "data": {
+    "/source/document.pdf": [size, mtime, inode],
+    "/source/archive/report.docx": [size, mtime, inode]
+  }
+}
+
+// hash_cache.json - Prevents duplicate processing
+{
+  "timestamp": 1758300704.3263733,
+  "data": {
+    "/source/processed_file.pdf": "sha256_hash_here"
+  }
+}
+```
+
+### 🚨 **Breaking Changes**
+
+- **Docker Compose**: State directory now defaults to `./state` (auto-created)
+- **New Environment Variables**: `STATE_DIR` and `STATE_CLEANUP_DAYS` added
+
+### 📦 **Upgrade Instructions**
+
+1. **Update docker-compose.yml** to include state volume:
+   ```yaml
+   volumes:
+     - ./state:/app/state:rw  # Add this line
+   ```
+
+2. **Set proper permissions** if needed:
+   ```bash
+   # Check your user ID
+   id $(whoami)
+   
+   # Update docker-compose.yml
+   environment:
+     - PUID=1000  # Your user ID
+     - PGID=1000  # Your group ID
+   ```
+
+3. **Pull and restart**:
+   ```bash
+   docker compose pull
+   docker compose down
+   docker compose up -d
+   ```
+
+---
+
 ## [1.0.0] - 2025-09-18
 
 ### 🎉 Initial Release

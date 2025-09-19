@@ -7,8 +7,8 @@ services:
     volumes:
       - /opt/testin:/source:ro
       - /opt/testout:/consume:rw
-      # Persistent state storage to prevent re-processing after restarts
-      - /opt/dropbox-consumer/state:/app/state:rw
+      # Persistent state storage in current directory (auto-created)
+      - ./state:/app/state:rw
     environment:
       - SOURCE=/source
       - DEST=/consume

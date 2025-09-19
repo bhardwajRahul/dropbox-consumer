@@ -68,6 +68,15 @@ def ensure_state_dir():
     try:
         STATE_DIR.mkdir(parents=True, exist_ok=True)
         log.info("State directory initialized: %s", STATE_DIR)
+        # Check permissions
+        test_file = STATE_DIR / "__test_write__"
+        try:
+            with test_file.open('w') as f:
+                f.write('test')
+            test_file.unlink()
+            log.info("State directory is writable: %s", STATE_DIR)
+        except Exception as e:
+            log.error("State directory is not writable: %s (%s)", STATE_DIR, e)
     except Exception as e:
         log.warning("Could not create state directory %s: %s", STATE_DIR, e)
         log.warning("Running without persistent state - data will be lost on restart")
@@ -76,8 +85,8 @@ def ensure_state_dir():
 def save_state():
     """Save current state to disk."""
     if not STATE_DIR.exists():
+        log.error("State directory does not exist: %s", STATE_DIR)
         return
-    
     try:
         # Save initial snapshot
         snapshot_data = {
@@ -86,7 +95,7 @@ def save_state():
         }
         with SNAPSHOT_FILE.open('w') as f:
             json.dump(snapshot_data, f, indent=2)
-        
+        log.info("Wrote snapshot file: %s", SNAPSHOT_FILE)
         # Save hash cache with timestamp for cleanup
         hash_data = {
             'timestamp': time.time(),
@@ -94,10 +103,10 @@ def save_state():
         }
         with HASH_CACHE_FILE.open('w') as f:
             json.dump(hash_data, f, indent=2)
-            
+        log.info("Wrote hash cache file: %s", HASH_CACHE_FILE)
         log.debug("State saved successfully")
     except Exception as e:
-        log.warning("Failed to save state: %s", e)
+        log.error("Failed to save state: %s", e)
 
 
 def load_state():
@@ -457,6 +466,9 @@ def main():
     state_saver.start()
 
     snapshot_existing_files()
+    
+    # Save initial state after snapshotting
+    save_state()
 
     # ensure destination exists
     DEST.mkdir(parents=True, exist_ok=True)

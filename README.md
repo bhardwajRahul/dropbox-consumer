@@ -85,6 +85,52 @@ That's it! Drop files into your source directory and watch them safely appear in
 | `COPY_TIMEOUT` | `60` | Maximum time to wait for file stability |
 | `MAX_WORKERS` | `4` | Maximum concurrent file processing threads |
 
+### User and Permissions
+
+The container runs with configurable user/group IDs to ensure proper file permissions:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PUID` | `1000` | Process User ID - should match your host user |
+| `PGID` | `1000` | Process Group ID - should match your host group |
+
+#### Finding Your User ID and Group ID
+
+```bash
+# Check your current user and group IDs
+id $(whoami)
+# Output example: uid=1000(username) gid=1000(groupname) groups=...
+
+# Or individually:
+echo "User ID: $(id -u)"
+echo "Group ID: $(id -g)"
+```
+
+#### Permission Troubleshooting
+
+If you encounter permission errors with state files or copied documents:
+
+1. **Check ownership of directories:**
+   ```bash
+   ls -la /opt/dropbox-consumer/state
+   ls -la /opt/paperless/consume
+   ```
+
+2. **Set correct PUID/PGID in docker-compose.yml:**
+   ```yaml
+   environment:
+     - PUID=1000  # Replace with your user ID
+     - PGID=1000  # Replace with your group ID
+   ```
+
+3. **For testing purposes, you can run as root (not recommended for production):**
+   ```bash
+   export PUID=0 PGID=0
+   docker compose up
+   ```
+
+> 💡 **Tip**: The state directory (`/app/state`) must be writable by the container user for persistent storage to work correctly.
+
 ### Docker Compose Example
 
 ```yaml
@@ -98,7 +144,7 @@ services:
       - /opt/documents/dropbox:/source:ro
       - /opt/paperless/consume:/consume:rw
       # 🆕 Persistent state to prevent re-processing after restarts
-      - /opt/dropbox-consumer/state:/app/state:rw
+      - ./state:/app/state:rw
     environment:
       - SOURCE=/source
       - DEST=/consume
@@ -235,7 +281,23 @@ docker-compose exec dropbox_consumer ls -la /consume
 ls -la /your/paperless/consume/
 ```
 
-#### 4. High CPU Usage
+#### 4. State Persistence Issues
+```bash
+# Check if state directory exists and is writable
+ls -la ./state/
+docker-compose exec dropbox_consumer ls -la /app/state
+
+# Verify state files are being created
+ls -la ./state/*.json
+
+# Check container logs for state-related errors
+docker-compose logs | grep -i state
+
+# If state directory is not writable, check PUID/PGID settings
+docker-compose exec dropbox_consumer id
+```
+
+#### 5. High CPU Usage
 ```bash
 # Reduce worker threads
 environment:
