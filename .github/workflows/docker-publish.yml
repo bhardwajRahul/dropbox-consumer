@@ -19,7 +19,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # Changed from read to write for creating releases
       packages: write
       id-token: write
 
@@ -110,5 +110,42 @@ jobs:
         password: ${{ secrets.DOCKER_TOKEN }}
         repository: ${{ env.IMAGE_NAME }}
         readme-filepath: ./README.md
-        short-description: "A robust file monitoring service for seamless document processing and file synchronization"
+        short-description: "File monitoring service for document processing and synchronization"
         enable-url-completion: true
+
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Extract version from tag (e.g., v3.0 -> 3.0)
+        VERSION=${GITHUB_REF_NAME#v}
+        
+        # Check if release notes file exists, otherwise use default content
+        if [ -f "RELEASE_NOTES_${GITHUB_REF_NAME}.md" ]; then
+          RELEASE_BODY="$(cat RELEASE_NOTES_${GITHUB_REF_NAME}.md)"
+        else
+          RELEASE_BODY="## Changes
+        
+        See commit history for detailed changes in this release.
+        
+        ## Docker Images
+        - \`trusmith/dropbox-consumer:${VERSION}\`
+        - \`trusmith/dropbox-consumer:latest\`
+        - \`ghcr.io/john-lazarus/dropbox-consumer:${VERSION}\`"
+        fi
+        
+        # Create the release
+        gh release create "${{ github.ref_name }}" \
+          --title "${{ github.ref_name }} - Dropbox Consumer" \
+          --notes "$RELEASE_BODY" \
+          --latest
