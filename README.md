@@ -81,8 +81,11 @@ That's it! Drop files into your source directory and watch them safely appear in
 |----------|---------|-------------|
 | `PUID` | `1000` | Process User ID |
 | `PGID` | `1000` | Process Group ID |
+
+```bash
 id $(whoami)
 # Output example: uid=1000(username) gid=1000(groupname) groups=...
+```
 
 # Or individually:
 echo "User ID: $(id -u)"
