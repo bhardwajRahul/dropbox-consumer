@@ -20,6 +20,7 @@ import sys
 import time
 import hashlib
 import logging
+import logging.handlers
 import threading
 import shutil
 import json
@@ -42,12 +43,71 @@ PRESERVE_DIRS = os.environ.get("PRESERVE_DIRS", "false").lower() in ("1", "true"
 COPY_EMPTY_DIRS = os.environ.get("COPY_EMPTY_DIRS", "false").lower() in ("1", "true", "yes")  # copy empty directories
 STATE_CLEANUP_DAYS = int(os.environ.get("STATE_CLEANUP_DAYS", "30"))     # cleanup old state entries after N days
 
-# --- Logging (console only) ---
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.DEBUG,  # Changed to DEBUG to see all events
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
+# Logging configuration
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+LOG_ROTATION_DAYS = min(max(int(os.environ.get("LOG_ROTATION_DAYS", "7")), 1), 30)  # Clamp to 1-30 days
+
+# --- Logging setup ---
+def setup_logging():
+    """Configure logging with level and rotation based on environment variables."""
+    # Map string levels to logging constants
+    level_mapping = {
+        'DEBUG': logging.DEBUG,
+        'INFO': logging.INFO,
+        'WARNING': logging.WARNING,
+        'ERROR': logging.ERROR
+    }
+    
+    log_level = level_mapping.get(LOG_LEVEL, logging.INFO)
+    
+    # Create logs directory if it doesn't exist
+    log_dir = Path("/app/logs")
+    log_dir.mkdir(exist_ok=True)
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    
+    # Clear any existing handlers
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    
+    # Console handler (for Docker logs)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(log_level)
+    console_format = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+    console_handler.setFormatter(console_format)
+    root_logger.addHandler(console_handler)
+    
+    # File handler with rotation (only if log directory is writable)
+    try:
+        log_file = log_dir / "dropbox-consumer.log"
+        # Calculate max bytes for rotation (approximate based on typical log volume)
+        # Estimate: ~1000 lines/day at INFO, ~10000 lines/day at DEBUG
+        lines_per_day = 10000 if log_level == logging.DEBUG else 1000
+        bytes_per_line = 100  # Average bytes per log line
+        max_bytes = lines_per_day * bytes_per_line * LOG_ROTATION_DAYS
+        
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, 
+            maxBytes=max_bytes, 
+            backupCount=LOG_ROTATION_DAYS
+        )
+        file_handler.setLevel(log_level)
+        file_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+        file_handler.setFormatter(file_format)
+        root_logger.addHandler(file_handler)
+        
+        # Log configuration info
+        logging.info(f"Logging configured: Level={LOG_LEVEL}, Rotation={LOG_ROTATION_DAYS} days, File={log_file}")
+        if LOG_LEVEL == "DEBUG" and LOG_ROTATION_DAYS > 14:
+            logging.warning(f"DEBUG logging with {LOG_ROTATION_DAYS} day rotation may consume significant disk space")
+            
+    except Exception as e:
+        logging.warning(f"Could not setup file logging: {e}. Using console only.")
+
+# Initialize logging
+setup_logging()
 log = logging.getLogger("dropbox-consumer")
 
 # --- Globals ---
@@ -316,7 +376,8 @@ def copy_empty_directory(src_dir: Path):
     dest_dir = make_dest_dir_path(src_dir)
     try:
         dest_dir.mkdir(parents=True, exist_ok=True)
-        log.info("COPIED EMPTY DIR -> %s to %s", src_dir, dest_dir)
+        log.info("📁 Created empty directory: %s → %s", src_dir.name, dest_dir.name)
+        log.debug("COPIED EMPTY DIR -> %s to %s", src_dir, dest_dir)
     except Exception as e:
         log.exception("Failed to copy empty directory %s -> %s: %s", src_dir, dest_dir, e)
 
@@ -335,7 +396,7 @@ def atomic_copy(src: Path, dest: Path):
 
 def process_file(path: str, reason: str):
     path = Path(path)
-    log.info("EVENT -> %s ; candidate: %s", reason.upper(), path)
+    log.debug("Processing candidate: %s (reason: %s)", path, reason.upper())
     # ensure file exists and is a file
     if not path.exists():
         log.warning("File not found when processing: %s", path)
@@ -362,7 +423,8 @@ def process_file(path: str, reason: str):
 
     last_sha = last_copied_hash.get(str(path))
     if sha is not None and last_sha == sha:
-        log.info("Skipping copy (content identical to last copied version): %s", path)
+        log.info("📄 Found new file: %s", path.name)
+        log.debug("Skipping copy (content identical to last copied version): %s", path)
         return
 
     # perform atomic copy
@@ -371,8 +433,10 @@ def process_file(path: str, reason: str):
         start = time.time()
         dest = atomic_copy(path, dest)
         elapsed = time.time() - start
-        log.info("COPIED -> %s  (size=%d bytes, hash=%s) to %s  (took %.3fs)",
-                 path, path.stat().st_size, sha or "?", dest, elapsed)
+        log.info("✅ Copied: %s → %s (%.1f MB in %.2fs)", 
+                 path.name, dest.name, path.stat().st_size / (1024*1024), elapsed)
+        log.debug("Copy details: %s (size=%d bytes, hash=%s) → %s", 
+                 path, path.stat().st_size, sha or "?", dest)
         if sha:
             last_copied_hash[str(path)] = sha
             # Save state immediately after successful copy

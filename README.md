@@ -29,7 +29,8 @@ Dropbox Consumer is a lightweight, Docker-based file monitoring service designed
 - 🛡️ **Duplicate Prevention** - SHA-256 hash comparison prevents redundant copying
 - 📁 **Directory Structure Preservation** - Maintains folder organization
 - 🔧 **Highly Configurable** - Extensive environment variable customization
-- 📊 **Comprehensive Logging** - Detailed operation tracking and debugging
+- 📊 **Docker-native Logging** - Automatic log rotation and size management
+- 🏗️ **Modular Architecture** - Clean, maintainable Python codebase
 
 ---
 
@@ -84,6 +85,7 @@ That's it! Drop files into your source directory and watch them safely appear in
 | `STABILITY_STABLE_ROUNDS` | `2` | Consecutive stable checks required |
 | `COPY_TIMEOUT` | `60` | Maximum time to wait for file stability |
 | `MAX_WORKERS` | `4` | Maximum concurrent file processing threads |
+| `LOG_LEVEL` | `INFO` | 🆕 Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL |
 
 ### User and Permissions
 
@@ -155,6 +157,8 @@ services:
       # 🆕 Persistent state configuration
       - STATE_DIR=/app/state
       - STATE_CLEANUP_DAYS=30
+      # 🆕 Docker-native logging with automatic rotation
+      - LOG_LEVEL=INFO
       - DEBOUNCE_SECONDS=2.0
       - MAX_WORKERS=2
     restart: unless-stopped
@@ -195,6 +199,37 @@ The service waits for files to become stable before copying:
 - Prevents copying of files still being written
 - Configurable timeout with `COPY_TIMEOUT`
 
+### 🆕 Docker-native Logging Configuration
+
+The service uses Docker's built-in logging system for automatic log rotation and management:
+
+#### Log Levels
+- **INFO** (default): Clean output focusing on file discoveries and copy operations
+  ```
+  📄 Found new file: document.pdf
+  ✅ Copied: document.pdf → document.pdf (2.4 MB in 0.15s)
+  ```
+- **DEBUG**: Detailed event tracking and processing information
+- **WARNING**: Important notices and potential issues
+- **ERROR**: Critical errors and failures
+- **CRITICAL**: System-level failures
+
+#### Docker Log Management
+- **Automatic rotation**: 10MB max file size, 3 rotated files
+- **No disk space concerns**: Docker handles cleanup automatically  
+- **Simple configuration**: Just set LOG_LEVEL environment variable
+- **Container logs**: Use `docker logs dropbox_consumer` to view output
+
+```yaml
+environment:
+  - LOG_LEVEL=INFO          # DEBUG, INFO, WARNING, ERROR, CRITICAL
+logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+```
+
 ### Intelligent Duplicate Prevention
 
 - Computes SHA-256 hash of each file
@@ -211,17 +246,37 @@ The service waits for files to become stable before copying:
 - **💾 JSON storage** - human-readable state files for debugging
 - **🚀 Performance** - faster startup by skipping already-processed files
 
+### 🏗️ Modular Architecture
+
+The application is built with a clean, maintainable modular structure:
+
+- **`src/config.py`** - Centralized environment variable configuration
+- **`src/logging_setup.py`** - Docker-native logging configuration  
+- **`src/state_manager.py`** - Persistent state management and cleanup
+- **`src/file_operations.py`** - File copying, hashing, and atomic operations
+- **`src/event_handlers.py`** - File system event handling and coordination
+- **`main.py`** - Application entry point tying modules together
+
+This modular design provides:
+- 🔧 **Easy maintenance** - isolated functionality in focused modules
+- 🧪 **Better testing** - individual modules can be tested independently  
+- 📈 **Scalability** - components can be enhanced without affecting others
+- 🎯 **Code reuse** - modules can be imported and used in other projects
+
 ---
 
 ## 📊 Monitoring & Logging
 
-### Log Levels
+### Viewing Logs
 
-The service provides comprehensive logging with different verbosity levels:
+The service uses Docker-native logging for easy monitoring:
 
 ```bash
-# View all logs (DEBUG level enabled by default)
+# View all logs
 docker-compose logs -f dropbox_consumer
+
+# View last 100 lines
+docker logs --tail 100 dropbox_consumer
 
 # Filter for specific events
 docker-compose logs dropbox_consumer | grep "COPIED"

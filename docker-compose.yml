@@ -21,5 +21,13 @@ services:
       # Persistent state configuration
       - STATE_DIR=/app/state
       - STATE_CLEANUP_DAYS=30
+      # LOG_LEVEL options: DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
+      # Docker-native logging handles log rotation and size management
+      - LOG_LEVEL=INFO
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 

@@ -21,12 +21,12 @@ WORKDIR /app
 # If pip needs to compile, you can add build deps; but that increases image size.
 RUN pip install --no-cache-dir watchdog
 
-# Copy app
-COPY watch_and_copy.py /app/watch_and_copy.py
+# Copy the Python modules and main application
+COPY src/ /app/src/
+COPY main.py /app/main.py
 
-# Create non-root user and directories for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN mkdir -p /app/state && chown -R appuser:appuser /app
+# Create state directory (logs are handled by Docker)
+RUN mkdir -p /app/state
 USER appuser
 
 # Expose configuration via environment variables
@@ -40,5 +40,6 @@ ENV SOURCE=/source \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import os; exit(0 if os.path.exists('/app/watch_and_copy.py') else 1)"
 
-CMD ["python", "watch_and_copy.py"]
+# Run the application
+CMD ["python", "main.py"]
 
