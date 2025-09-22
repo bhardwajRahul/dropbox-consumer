@@ -4,49 +4,37 @@
   <img src="appicon.png" alt="Dropbox Consumer" width="128" height="128">
 </div>
 
-> **A robust file monitoring service for seamless document processing and file synchronization**
+> **File monitoring service for document processing and synchronization**
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey?style=flat-square)](https://creativecommons.org/licenses/by-nc/4.0/)
 
-## 📋 Overview
+## Overview
 
-Dropbox Consumer is a lightweight, Docker-based file monitoring service designed to intelligently watch source directories and safely process new files. While originally created to feed documents into [Paperless-NGX](https://docs.paperless-ngx.com/), it's a versatile solution that can be adapted for various file processing workflows including:
+Monitors source directories and copies new files to destination. Originally designed for [Paperless-NGX](https://docs.paperless-ngx.com/) document ingestion.
 
-- 📄 **Document Management** - Automatic ingestion into Paperless-NGX, Nextcloud, or similar systems
-- 🖼️ **Media Processing** - Photo/video organization and processing pipelines
-- 📊 **Data Pipelines** - Automated processing of CSV, JSON, or other data files
-- 🔄 **File Synchronization** - Intelligent copying between directories with deduplication
-- 🏢 **Enterprise Workflows** - Automated document routing and processing
-- 🎯 **Custom Processing** - Any scenario requiring reliable file monitoring and atomic operations
+**Use Cases:**
+- Document management systems
+- Media processing pipelines  
+- Data file processing
+- Directory synchronization
 
-### ✨ Key Features
+### Features
 
-- 🔍 **Smart File Detection** - Only processes files created/modified after startup
-- ⚡ **Real-time Monitoring** - Uses efficient file system event watching
-- 🔒 **Atomic Operations** - Ensures Paperless never sees incomplete files
-- 🛡️ **Duplicate Prevention** - SHA-256 hash comparison prevents redundant copying
-- 📁 **Directory Structure Preservation** - Maintains folder organization
-- 🔧 **Highly Configurable** - Extensive environment variable customization
-- 📊 **Docker-native Logging** - Automatic log rotation and size management
-- 🏗️ **Modular Architecture** - Clean, maintainable Python codebase
+- Processes only new files (ignores existing on startup)
+- Real-time file system monitoring
+- Atomic file operations
+- SHA-256 duplicate prevention
+- Directory structure preservation
+- Configurable via environment variables
+- Docker log rotation
 
----
+## Quick Start
 
-## 🚀 Quick Start
+**Prerequisites:** Docker and Docker Compose
 
-### Prerequisites
-
-- Docker and Docker Compose
-- Source directory with documents to monitor
-- Destination directory for Paperless-NGX consumption
-
-### Basic Setup
-
-1. **Clone or download the project files**
-
-2. **Configure your paths in `docker-compose.yml`:**
+1. **Configure paths in `docker-compose.yml`:**
    ```yaml
    volumes:
      - /your/source/path:/source:ro          # Your document dropbox
@@ -75,31 +63,24 @@ That's it! Drop files into your source directory and watch them safely appear in
 |----------|---------|-------------|
 | `SOURCE` | `/source` | Source directory to monitor |
 | `DEST` | `/consume` | Destination directory (Paperless consume folder) |
-| `RECURSIVE` | `true` | Monitor subdirectories recursively |
-| `PRESERVE_DIRS` | `false` | Maintain directory structure in destination |
-| `COPY_EMPTY_DIRS` | `false` | ⚠️ Copy empty directories (see warning below) |
-| `STATE_DIR` | `/app/state` | 🆕 Directory for persistent state storage |
-| `STATE_CLEANUP_DAYS` | `30` | 🆕 Days to keep old state entries (0=disable) |
+| `RECURSIVE` | `true` | Monitor subdirectories |
+| `PRESERVE_DIRS` | `false` | Maintain directory structure |
+| `COPY_EMPTY_DIRS` | `false` | Copy empty directories |
+| `STATE_DIR` | `/app/state` | State persistence directory |
+| `STATE_CLEANUP_DAYS` | `30` | Days to keep old state entries |
 | `DEBOUNCE_SECONDS` | `1.0` | Event debouncing delay |
 | `STABILITY_INTERVAL` | `0.5` | File stability check interval |
-| `STABILITY_STABLE_ROUNDS` | `2` | Consecutive stable checks required |
-| `COPY_TIMEOUT` | `60` | Maximum time to wait for file stability |
-| `MAX_WORKERS` | `4` | Maximum concurrent file processing threads |
-| `LOG_LEVEL` | `INFO` | 🆕 Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `STABILITY_STABLE_ROUNDS` | `2` | Stable checks required |
+| `COPY_TIMEOUT` | `60` | File stability timeout |
+| `MAX_WORKERS` | `4` | Concurrent processing threads |
+| `LOG_LEVEL` | `INFO` | Logging level |
 
 ### User and Permissions
 
-The container runs with configurable user/group IDs to ensure proper file permissions:
-
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PUID` | `1000` | Process User ID - should match your host user |
-| `PGID` | `1000` | Process Group ID - should match your host group |
-
-#### Finding Your User ID and Group ID
-
-```bash
-# Check your current user and group IDs
+| `PUID` | `1000` | Process User ID |
+| `PGID` | `1000` | Process Group ID |
 id $(whoami)
 # Output example: uid=1000(username) gid=1000(groupname) groups=...
 
@@ -199,30 +180,13 @@ The service waits for files to become stable before copying:
 - Prevents copying of files still being written
 - Configurable timeout with `COPY_TIMEOUT`
 
-### 🆕 Docker-native Logging Configuration
+### Docker-native Logging
 
-The service uses Docker's built-in logging system for automatic log rotation and management:
-
-#### Log Levels
-- **INFO** (default): Clean output focusing on file discoveries and copy operations
-  ```
-  📄 Found new file: document.pdf
-  ✅ Copied: document.pdf → document.pdf (2.4 MB in 0.15s)
-  ```
-- **DEBUG**: Detailed event tracking and processing information
-- **WARNING**: Important notices and potential issues
-- **ERROR**: Critical errors and failures
-- **CRITICAL**: System-level failures
-
-#### Docker Log Management
-- **Automatic rotation**: 10MB max file size, 3 rotated files
-- **No disk space concerns**: Docker handles cleanup automatically  
-- **Simple configuration**: Just set LOG_LEVEL environment variable
-- **Container logs**: Use `docker logs dropbox_consumer` to view output
+Available log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 ```yaml
 environment:
-  - LOG_LEVEL=INFO          # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  - LOG_LEVEL=INFO
 logging:
   driver: "json-file"
   options:
@@ -230,55 +194,25 @@ logging:
     max-file: "3"
 ```
 
-### Intelligent Duplicate Prevention
+### Duplicate Prevention
 
-- Computes SHA-256 hash of each file
-- Skips copying if content hasn't changed since last copy
-- Prevents unnecessary re-processing of identical files
-- **🆕 Persistent hash cache** - remembers processed files across container restarts
-- **🆕 Automatic cleanup** - removes old entries to prevent unbounded growth
+- SHA-256 hash comparison
+- Persistent hash cache across restarts
+- Automatic cache cleanup
 
-### Persistent State Management
+### State Management
 
-- **📂 State persistence** - maintains processing history across restarts
-- **🔄 Resume capability** - no duplicate processing after container restart
-- **🧹 Automatic cleanup** - configurable retention of old state entries
-- **💾 JSON storage** - human-readable state files for debugging
-- **🚀 Performance** - faster startup by skipping already-processed files
+- Maintains processing history across restarts
+- Configurable retention
+- JSON storage for debugging
 
-### 🏗️ Modular Architecture
-
-The application is built with a clean, maintainable modular structure:
-
-- **`src/config.py`** - Centralized environment variable configuration
-- **`src/logging_setup.py`** - Docker-native logging configuration  
-- **`src/state_manager.py`** - Persistent state management and cleanup
-- **`src/file_operations.py`** - File copying, hashing, and atomic operations
-- **`src/event_handlers.py`** - File system event handling and coordination
-- **`main.py`** - Application entry point tying modules together
-
-This modular design provides:
-- 🔧 **Easy maintenance** - isolated functionality in focused modules
-- 🧪 **Better testing** - individual modules can be tested independently  
-- 📈 **Scalability** - components can be enhanced without affecting others
-- 🎯 **Code reuse** - modules can be imported and used in other projects
-
----
-
-## 📊 Monitoring & Logging
-
-### Viewing Logs
-
-The service uses Docker-native logging for easy monitoring:
+## Monitoring & Logging
 
 ```bash
-# View all logs
+# View logs
 docker-compose logs -f dropbox_consumer
 
-# View last 100 lines
-docker logs --tail 100 dropbox_consumer
-
-# Filter for specific events
+# Filter events
 docker-compose logs dropbox_consumer | grep "COPIED"
 docker-compose logs dropbox_consumer | grep "ERROR"
 ```
