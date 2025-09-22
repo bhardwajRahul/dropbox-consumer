@@ -148,7 +148,7 @@ def process_file(path: Path, reason: str):
         
         # Log success
         size_mb = path.stat().st_size / (1024 * 1024)
-        logger.info(f"✅ Copied: {path.name} → {dest.name} ({size_mb:.1f} MB in {elapsed:.2fs})")
+        logger.info(f"✅ Copied: {path.name} → {dest.name} ({size_mb:.1f} MB in {elapsed:.2f}s)")
         logger.debug(f"Copy details: {path} (size={path.stat().st_size} bytes, hash={current_hash}) → {dest}")
         
         # Update hash cache
