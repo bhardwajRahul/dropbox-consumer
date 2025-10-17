@@ -15,17 +15,49 @@ Real-time monitoring, duplicate detection, file stability checks, persistent sta
 
 ## Quick Start
 
-## Installation
-
-Requires Docker and Docker Compose.
-
-Edit `docker-compose.yml` to set your source and destination paths:
+Complete docker-compose.yml example:
 
 ```yaml
-volumes:
-  - /your/source/path:/source:ro
-  - /your/destination/path:/consume:rw
-  - ./state:/app/state:rw
+version: "3.8"
+services:
+  dropbox_consumer:
+    image: trusmith/dropbox-consumer:latest
+    container_name: dropbox_consumer
+    user: "${PUID:-1000}:${PGID:-1000}"
+    volumes:
+      - /your/source/path:/source:ro
+      - /your/destination/path:/consume:rw
+      - ./state:/app/state:rw
+    environment:
+      - SOURCE=/source
+      - DEST=/consume
+      - RECURSIVE=true
+      - PRESERVE_DIRS=false
+      - COPY_EMPTY_DIRS=false
+      - STATE_DIR=/app/state
+      - STATE_CLEANUP_DAYS=30
+      - STATE_BACKUP_COUNT=3
+      - LOG_LEVEL=INFO
+      - DEBOUNCE_SECONDS=1.0
+      - STABILITY_INTERVAL=0.5
+      - STABILITY_STABLE_ROUNDS=2
+      - COPY_TIMEOUT=60
+      - MAX_WORKERS=4
+      - FILE_INCLUDE_PATTERNS=
+      - FILE_EXCLUDE_PATTERNS=
+      - DRY_RUN=false
+      - DELETE_SOURCE=false
+      - MAX_FILE_SIZE_MB=0
+      - COMPRESS_FILES=false
+      - WEBHOOK_URL=
+      - RETRY_ATTEMPTS=3
+      - RETRY_DELAY=2.0
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
 ```
 
 Start the service:
