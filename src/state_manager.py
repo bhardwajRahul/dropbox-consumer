@@ -5,6 +5,7 @@ Handles persistent state storage for file tracking and duplicate prevention.
 """
 
 import json
+import shutil
 import time
 import threading
 from pathlib import Path
@@ -76,6 +77,26 @@ class StateManager:
             except Exception as e:
                 logger.warning(f"Could not load hash cache: {e}")
     
+    def _rotate_file(self, file_path: Path):
+        """Rotate backup copies of a state file."""
+        if not file_path.exists():
+            return
+        
+        # Rotate existing backups
+        for i in range(config.STATE_BACKUP_COUNT - 1, 0, -1):
+            old_backup = file_path.with_suffix(f"{file_path.suffix}.{i}")
+            new_backup = file_path.with_suffix(f"{file_path.suffix}.{i+1}")
+            if old_backup.exists():
+                if new_backup.exists():
+                    new_backup.unlink()
+                old_backup.rename(new_backup)
+        
+        # Create first backup from current file
+        backup = file_path.with_suffix(f"{file_path.suffix}.1")
+        if backup.exists():
+            backup.unlink()
+        shutil.copy2(file_path, backup)
+    
     def save_state(self):
         """Save current state to files."""
         if not config.STATE_DIR.exists():
@@ -84,6 +105,11 @@ class StateManager:
         
         with self.lock:
             try:
+                # Rotate state files before saving
+                if config.STATE_BACKUP_COUNT > 0:
+                    self._rotate_file(self.snapshot_file)
+                    self._rotate_file(self.hash_cache_file)
+                
                 # Save initial snapshot
                 snapshot_data = {
                     'timestamp': self.startup_time,
