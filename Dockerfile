@@ -27,7 +27,6 @@ COPY main.py /app/main.py
 
 # Create state directory (logs are handled by Docker)
 RUN mkdir -p /app/state
-USER appuser
 
 # Expose configuration via environment variables
 ENV SOURCE=/source \
