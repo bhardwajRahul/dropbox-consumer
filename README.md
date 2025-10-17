@@ -275,3 +275,9 @@ Available tags:
 Licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
 
 Personal use, modification, and sharing permitted with attribution. Commercial use requires permission.
+
+## Support
+
+If this project helped you, consider supporting my work:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/trusmith)
