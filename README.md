@@ -1,5 +1,8 @@
 # Dropbox Consumer
 
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/trusmith/dropbox-consumer)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+
 File monitoring service that copies new files from a source directory to a destination. Built for document management systems like Paperless-NGX.
 
 ## Why I Built This
