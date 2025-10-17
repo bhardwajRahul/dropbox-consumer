@@ -33,8 +33,18 @@ class Config:
         self.FILE_INCLUDE_PATTERNS = self._parse_patterns(os.environ.get("FILE_INCLUDE_PATTERNS", ""))
         self.FILE_EXCLUDE_PATTERNS = self._parse_patterns(os.environ.get("FILE_EXCLUDE_PATTERNS", ""))
         
+        # Advanced features
+        self.WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").strip()
+        self.DRY_RUN = self._parse_bool(os.environ.get("DRY_RUN", "false"))
+        self.DELETE_SOURCE = self._parse_bool(os.environ.get("DELETE_SOURCE", "false"))
+        self.MAX_FILE_SIZE_MB = int(os.environ.get("MAX_FILE_SIZE_MB", "0"))  # 0 = unlimited
+        self.RETRY_ATTEMPTS = int(os.environ.get("RETRY_ATTEMPTS", "3"))
+        self.RETRY_DELAY = float(os.environ.get("RETRY_DELAY", "2.0"))
+        self.COMPRESS_FILES = self._parse_bool(os.environ.get("COMPRESS_FILES", "false"))
+        
         # State management
         self.STATE_CLEANUP_DAYS = int(os.environ.get("STATE_CLEANUP_DAYS", "30"))
+        self.STATE_BACKUP_COUNT = int(os.environ.get("STATE_BACKUP_COUNT", "3"))
         
         # Logging
         self.LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()

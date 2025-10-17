@@ -15,8 +15,20 @@ from watchdog.observers import Observer
 from src.config import config
 from src.logging_setup import setup_logging
 from src.state_manager import state_manager
-from src.file_operations import snapshot_existing_files
+from src.file_operations import snapshot_existing_files, get_metrics
 from src.event_handlers import FileSystemEventHandler, cleanup_executor
+
+
+def write_metrics_file():
+    """Write metrics to file periodically."""
+    metrics_file = Path('/tmp/metrics.json')
+    while True:
+        try:
+            import json
+            metrics_file.write_text(json.dumps(get_metrics(), indent=2))
+            time.sleep(60)
+        except Exception:
+            pass
 
 
 def write_health_file():
@@ -92,6 +104,16 @@ def main():
         logger.info(f"Include patterns: {', '.join(config.FILE_INCLUDE_PATTERNS)}")
     if config.FILE_EXCLUDE_PATTERNS:
         logger.info(f"Exclude patterns: {', '.join(config.FILE_EXCLUDE_PATTERNS)}")
+    if config.DRY_RUN:
+        logger.warning("DRY RUN MODE - No files will be copied")
+    if config.DELETE_SOURCE:
+        logger.warning("DELETE_SOURCE enabled - Source files will be deleted after copy")
+    if config.WEBHOOK_URL:
+        logger.info(f"Webhook notifications enabled: {config.WEBHOOK_URL}")
+    if config.MAX_FILE_SIZE_MB > 0:
+        logger.info(f"Maximum file size: {config.MAX_FILE_SIZE_MB} MB")
+    if config.COMPRESS_FILES:
+        logger.info("File compression enabled")
     
     # Initialize persistent state
     state_manager.ensure_state_dir()
@@ -108,6 +130,10 @@ def main():
     # Start health file writer in background
     health_writer = threading.Thread(target=write_health_file, daemon=True)
     health_writer.start()
+    
+    # Start metrics writer in background
+    metrics_writer = threading.Thread(target=write_metrics_file, daemon=True)
+    metrics_writer.start()
     
     # Snapshot existing files
     snapshot_existing_files()

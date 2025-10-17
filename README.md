@@ -95,7 +95,15 @@ environment:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `COPY_EMPTY_DIRS` | `false` | Copy empty directories (requires PRESERVE_DIRS=true) |
+| `DRY_RUN` | `false` | Simulate operations without copying files |
+| `DELETE_SOURCE` | `false` | Delete source files after successful copy |
+| `MAX_FILE_SIZE_MB` | `0` | Maximum file size in MB (0 = unlimited) |
+| `COMPRESS_FILES` | `false` | Compress files with gzip during copy |
+| `WEBHOOK_URL` | _(empty)_ | HTTP endpoint for copy notifications |
+| `RETRY_ATTEMPTS` | `3` | Number of retry attempts for failed operations |
+| `RETRY_DELAY` | `2.0` | Initial retry delay in seconds (exponential backoff) |
 | `STATE_CLEANUP_DAYS` | `30` | Days to retain old state entries |
+| `STATE_BACKUP_COUNT` | `3` | Number of state file backups to keep |
 | `PUID` | `1000` | User ID for file operations |
 | `PGID` | `1000` | Group ID for file operations |
 
