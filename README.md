@@ -278,6 +278,6 @@ Personal use, modification, and sharing permitted with attribution. Commercial u
 
 ## Support
 
-If this project helped you, consider supporting my work:
+If this project helped you, please consider supporting my work:
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/trusmith)
+<a href="https://www.buymeacoffee.com/trusmith" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217"></a>
