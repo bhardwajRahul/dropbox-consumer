@@ -11,12 +11,7 @@ I created this out of a need to use [paperless-ngx](https://github.com/paperless
 
 ## Features
 
-- Real-time file monitoring with atomic copy operations
-- SHA-256 duplicate detection
-- Optional directory structure preservation
-- File stability checks to prevent copying incomplete files
-- Persistent state tracking across restarts
-- Configurable via environment variables
+Real-time monitoring, duplicate detection, file stability checks, persistent state, file filtering.
 
 ## Quick Start
 
