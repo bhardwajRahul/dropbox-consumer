@@ -127,6 +127,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        # Check if release already exists
+        if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+          echo "Release ${{ github.ref_name }} already exists, skipping creation"
+          exit 0
+        fi
+        
         # Extract version from tag (e.g., v3.0 -> 3.0)
         VERSION=${GITHUB_REF_NAME#v}
         
