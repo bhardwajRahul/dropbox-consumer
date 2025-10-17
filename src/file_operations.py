@@ -4,6 +4,7 @@ File operations module for Dropbox Consumer.
 Handles file copying, hashing, and directory operations.
 """
 
+import fnmatch
 import hashlib
 import shutil
 import time
@@ -14,6 +15,29 @@ from .logging_setup import get_logger
 from .state_manager import state_manager
 
 logger = get_logger(__name__)
+
+
+def should_process_file(path: Path) -> bool:
+    """Check if file matches include/exclude patterns."""
+    filename = path.name
+    
+    # Check exclude patterns first
+    if config.FILE_EXCLUDE_PATTERNS:
+        for pattern in config.FILE_EXCLUDE_PATTERNS:
+            if fnmatch.fnmatch(filename, pattern):
+                logger.debug(f"File excluded by pattern '{pattern}': {filename}")
+                return False
+    
+    # Check include patterns (if specified, file must match at least one)
+    if config.FILE_INCLUDE_PATTERNS:
+        for pattern in config.FILE_INCLUDE_PATTERNS:
+            if fnmatch.fnmatch(filename, pattern):
+                return True
+        logger.debug(f"File does not match any include patterns: {filename}")
+        return False
+    
+    # No patterns specified or file passed all checks
+    return True
 
 
 def compute_sha256(path: Path, chunk_size: int = 4 * 1024 * 1024) -> str:
@@ -101,7 +125,7 @@ def copy_empty_directory(src_dir: Path):
     dest_dir = compute_dest_path(src_dir)
     try:
         dest_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"📁 Created empty directory: {src_dir.name} → {dest_dir.name}")
+        logger.info(f"Created empty directory: {src_dir.name} -> {dest_dir.name}")
         logger.debug(f"COPIED EMPTY DIR -> {src_dir} to {dest_dir}")
     except Exception as e:
         logger.error(f"Failed to create directory {dest_dir}: {e}")
@@ -117,6 +141,11 @@ def process_file(path: Path, reason: str):
         return
     if path.is_dir():
         logger.debug(f"Ignoring directory: {path}")
+        return
+    
+    # Check file patterns
+    if not should_process_file(path):
+        logger.debug(f"File filtered out by patterns: {path}")
         return
     
     # Wait for file to stabilize
@@ -136,7 +165,7 @@ def process_file(path: Path, reason: str):
     # Check against previous hash
     cached_hash = state_manager.get_cached_hash(path)
     if cached_hash == current_hash:
-        logger.info(f"📄 Found new file: {path.name}")
+        logger.info(f"Found new file: {path.name}")
         logger.debug(f"Skipping copy (content identical to last copied version): {path}")
         return
     
@@ -148,8 +177,8 @@ def process_file(path: Path, reason: str):
         
         # Log success
         size_mb = path.stat().st_size / (1024 * 1024)
-        logger.info(f"✅ Copied: {path.name} → {dest.name} ({size_mb:.1f} MB in {elapsed:.2f}s)")
-        logger.debug(f"Copy details: {path} (size={path.stat().st_size} bytes, hash={current_hash}) → {dest}")
+        logger.info(f"Copied: {path.name} -> {dest.name} ({size_mb:.1f} MB in {elapsed:.2f}s)")
+        logger.debug(f"Copy details: {path} (size={path.stat().st_size} bytes, hash={current_hash}) -> {dest}")
         
         # Update hash cache
         state_manager.set_cached_hash(path, current_hash)

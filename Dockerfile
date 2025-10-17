@@ -36,9 +36,9 @@ ENV SOURCE=/source \
     RECURSIVE=true \
     COPY_EMPTY_DIRS=false
 
-# Health check
+# Health check - verify service is running by checking health file freshness
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import os; exit(0 if os.path.exists('/app/watch_and_copy.py') else 1)"
+    CMD test -f /tmp/health && [ $(( $(date +%s) - $(cat /tmp/health) )) -lt 60 ] || exit 1
 
 # Run the application
 CMD ["python", "main.py"]

@@ -29,6 +29,10 @@ class Config:
         self.PRESERVE_DIRS = self._parse_bool(os.environ.get("PRESERVE_DIRS", "false"))
         self.COPY_EMPTY_DIRS = self._parse_bool(os.environ.get("COPY_EMPTY_DIRS", "false"))
         
+        # File filtering
+        self.FILE_INCLUDE_PATTERNS = self._parse_patterns(os.environ.get("FILE_INCLUDE_PATTERNS", ""))
+        self.FILE_EXCLUDE_PATTERNS = self._parse_patterns(os.environ.get("FILE_EXCLUDE_PATTERNS", ""))
+        
         # State management
         self.STATE_CLEANUP_DAYS = int(os.environ.get("STATE_CLEANUP_DAYS", "30"))
         
@@ -39,6 +43,12 @@ class Config:
     def _parse_bool(self, value: str) -> bool:
         """Parse string to boolean."""
         return value.lower() in ("1", "true", "yes")
+    
+    def _parse_patterns(self, value: str) -> list:
+        """Parse comma-separated patterns."""
+        if not value or not value.strip():
+            return []
+        return [p.strip() for p in value.split(',') if p.strip()]
     
     def _validate_log_level(self):
         """Validate log level is supported."""

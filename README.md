@@ -67,6 +67,31 @@ Environment variables control behavior. Set in `docker-compose.yml` or via comma
 | `COPY_TIMEOUT` | `60` | Maximum seconds to wait for file stability |
 | `MAX_WORKERS` | `4` | Concurrent processing threads |
 
+### File Filtering
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FILE_INCLUDE_PATTERNS` | _(empty)_ | Comma-separated patterns to include (e.g., `*.pdf,*.jpg`) |
+| `FILE_EXCLUDE_PATTERNS` | _(empty)_ | Comma-separated patterns to exclude (e.g., `*.tmp,*.swp`) |
+
+When include patterns are specified, only files matching at least one pattern are processed. Exclude patterns are applied first and take precedence.
+
+Examples:
+```yaml
+# Only copy PDF and image files
+environment:
+  - FILE_INCLUDE_PATTERNS=*.pdf,*.jpg,*.png,*.jpeg
+
+# Exclude temporary and system files
+environment:
+  - FILE_EXCLUDE_PATTERNS=*.tmp,*.swp,.DS_Store,Thumbs.db
+
+# Combine both
+environment:
+  - FILE_INCLUDE_PATTERNS=*.pdf,*.docx
+  - FILE_EXCLUDE_PATTERNS=*draft*,*temp*
+```
+
 ### Advanced Options
 
 | Variable | Default | Description |
