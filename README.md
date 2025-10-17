@@ -2,6 +2,10 @@
 
 File monitoring service that copies new files from a source directory to a destination. Built for document management systems like Paperless-NGX.
 
+## Why I Built This
+
+I created this out of a need to use [paperless-ngx](https://github.com/paperless-ngx/paperless-ngx) without having it devour my documentation. I needed a way to continue using my existing organization structure while also using paperless. It does create two sources for the same information, yes, but that's what I needed. And since there was nothing else like it out there, I chose to build this small, efficient, and simple tool.
+
 ## Features
 
 - Real-time file monitoring with atomic copy operations
@@ -10,6 +14,8 @@ File monitoring service that copies new files from a source directory to a desti
 - File stability checks to prevent copying incomplete files
 - Persistent state tracking across restarts
 - Configurable via environment variables
+
+## Quick Start
 
 ## Installation
 
